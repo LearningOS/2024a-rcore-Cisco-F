@@ -16,6 +16,8 @@ mod task;
 
 use crate::loader::{get_app_data, get_num_app};
 use crate::sync::UPSafeCell;
+use crate::syscall::TaskInfo;
+use crate::timer::get_time_ms;
 use crate::trap::TrapContext;
 use alloc::vec::Vec;
 use lazy_static::*;
@@ -79,6 +81,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let next_task = &mut inner.tasks[0];
         next_task.task_status = TaskStatus::Running;
+        next_task.task_start_time = get_time_ms();
         let next_task_cx_ptr = &next_task.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -140,6 +143,9 @@ impl TaskManager {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             inner.tasks[next].task_status = TaskStatus::Running;
+            if inner.tasks[next].task_start_time == 0 {
+                inner.tasks[next].task_start_time = get_time_ms();
+            }
             inner.current_task = next;
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
@@ -151,6 +157,24 @@ impl TaskManager {
             // go back to user mode
         } else {
             panic!("All applications completed!");
+        }
+    }
+
+    /// update syscall
+    fn update_syscall(&self, syscall_id: usize) {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].update_syscall(syscall_id);
+    }
+
+    /// get task info
+    fn task_info(&self, ti: *mut TaskInfo) {
+        let inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        unsafe {
+            (*ti).status = inner.tasks[cur].task_status;
+            (*ti).time = get_time_ms() - inner.tasks[cur].task_start_time;
+            (*ti).syscall_times = inner.tasks[cur].syscall_times;
         }
     }
 }
@@ -201,4 +225,14 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
 /// Change the current 'Running' task's program break
 pub fn change_program_brk(size: i32) -> Option<usize> {
     TASK_MANAGER.change_current_program_brk(size)
+}
+
+/// update syscall
+pub fn update_syscall(syscall_id: usize) {
+    TASK_MANAGER.update_syscall(syscall_id);
+}
+
+/// get task info
+pub fn task_info(ti: *mut TaskInfo) {
+    TASK_MANAGER.task_info(ti);
 }
