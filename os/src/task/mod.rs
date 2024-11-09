@@ -177,6 +177,13 @@ impl TaskManager {
             (*ti).syscall_times = inner.tasks[cur].syscall_times;
         }
     }
+
+    /// mmap
+    fn mmap(&self, start: usize, len: usize, port: usize) -> isize {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].mmap(start, len, port)
+    }
 }
 
 /// Run the first task in task list.
@@ -235,4 +242,9 @@ pub fn update_syscall(syscall_id: usize) {
 /// get task info
 pub fn task_info(ti: *mut TaskInfo) {
     TASK_MANAGER.task_info(ti);
+}
+
+/// mmap for current task
+pub fn mmap(start: usize, len: usize, port: usize) -> isize {
+    TASK_MANAGER.mmap(start, len, port)
 }

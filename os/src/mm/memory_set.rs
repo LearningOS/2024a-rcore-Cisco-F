@@ -262,6 +262,40 @@ impl MemorySet {
             false
         }
     }
+    /// mmap
+    pub fn mmap(&mut self, start: usize, len: usize, port: usize) -> isize {
+        let start_va = VirtAddr(start);
+        let start_page = start_va.floor();
+        let end_va = VirtAddr(start + len);
+        let end_page = end_va.ceil();
+
+        if VirtAddr::from(start_page) != start_va {
+            return -1;
+        }
+        if port & !0x7 != 0 {
+            return -1;
+        }
+        if port & 0x7 == 0 {
+            return -1;
+        }
+
+        let page_table = &self.page_table;
+        for vpn in VPNRange::new(start_page, end_page) {
+            match page_table.translate(vpn) {
+                Some(pte) => {
+                    if pte.is_valid() {
+                        return -1;
+                    }
+                },
+                None => {},
+            };
+        }
+
+        let map_perm = MapPermission::from_bits_truncate((port as u8) << 1) | MapPermission::U;
+        self.insert_framed_area(start_va, end_va, map_perm);
+
+        0
+    }
 }
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {

@@ -110,6 +110,10 @@ impl TaskControlBlock {
     pub fn update_syscall(&mut self, syscall_id: usize) {
         self.syscall_times[syscall_id] += 1;
     }
+    /// mmap
+    pub fn mmap(&mut self, start: usize, len: usize, port: usize) -> isize {
+        self.memory_set.mmap(start, len, port)
+    }
 }
 
 #[derive(Copy, Clone, PartialEq)]
