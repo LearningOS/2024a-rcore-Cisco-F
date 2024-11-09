@@ -184,6 +184,13 @@ impl TaskManager {
         let cur = inner.current_task;
         inner.tasks[cur].mmap(start, len, port)
     }
+
+    /// munmap
+    fn munmap(&self, start: usize, len: usize) -> isize {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].munmap(start, len)
+    }
 }
 
 /// Run the first task in task list.
@@ -247,4 +254,9 @@ pub fn task_info(ti: *mut TaskInfo) {
 /// mmap for current task
 pub fn mmap(start: usize, len: usize, port: usize) -> isize {
     TASK_MANAGER.mmap(start, len, port)
+}
+
+/// munmap
+pub fn munmap(start: usize, len: usize) -> isize {
+    TASK_MANAGER.munmap(start, len)
 }

@@ -296,6 +296,34 @@ impl MemorySet {
 
         0
     }
+    /// munmap
+    pub fn munmap(&mut self, start: usize, len: usize) -> isize {
+        let start_va = VirtAddr(start);
+        let start_page = start_va.floor();
+        let end_va = VirtAddr(start + len);
+        let end_page = end_va.ceil();
+
+        if VirtAddr::from(start_page) != start_va {
+            return -1;
+        }
+
+        let page_table = &mut self.page_table;
+        for vpn in VPNRange::new(start_page, end_page) {
+            match page_table.translate(vpn) {
+                Some(pte) => {
+                    if !pte.is_valid() {
+                        return -1;
+                    }
+                },
+                None => {
+                    return -1;
+                },
+            }
+            page_table.unmap(vpn);
+        }
+
+        0
+    }
 }
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
