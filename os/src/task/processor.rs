@@ -7,6 +7,7 @@
 use super::__switch;
 use super::{fetch_task, TaskStatus};
 use super::{TaskContext, TaskControlBlock};
+use crate::mm::{PhysPageNum, VirtPageNum};
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::sync::Arc;
@@ -44,9 +45,21 @@ impl Processor {
     pub fn current(&self) -> Option<Arc<TaskControlBlock>> {
         self.current.as_ref().map(Arc::clone)
     }
+
+    /// Get current task's ppn by vpn
+    pub fn get_ppn_by_vpn(&self, vpn: VirtPageNum) -> Option<PhysPageNum> {
+        let current = self.current().unwrap();
+        let ppn = current
+            .inner_exclusive_access()
+            .memory_set
+            .translate(vpn.into())
+            .map(|entry| entry.ppn());
+        ppn
+    }
 }
 
 lazy_static! {
+    /// Global processor instance for managing tasks
     pub static ref PROCESSOR: UPSafeCell<Processor> = unsafe { UPSafeCell::new(Processor::new()) };
 }
 
@@ -56,6 +69,7 @@ pub fn run_tasks() {
     loop {
         let mut processor = PROCESSOR.exclusive_access();
         if let Some(task) = fetch_task() {
+            // println!("task id: {}", task.getpid());
             let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
             // access coming task TCB exclusively
             let mut task_inner = task.inner_exclusive_access();
@@ -108,4 +122,9 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     unsafe {
         __switch(switched_task_cx_ptr, idle_task_cx_ptr);
     }
+}
+
+/// get ppn fron vpn
+pub fn ppn_by_vpn(vpn: VirtPageNum) -> Option<PhysPageNum> {
+    PROCESSOR.exclusive_access().get_ppn_by_vpn(vpn)
 }
