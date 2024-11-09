@@ -9,13 +9,14 @@
 访问S态寄存器：[kernel] IllegalInstruction in application, kernel killed it.直接判断指令不合法，内核报错退出。
 访问错误地址(0x0)：[kernel] PageFault in application, bad addr = 0x0, bad instruction = 0x804003ac, kernel killed it.出现了PageFault,同样报错退出
 
-2.  a. a0代表了内核栈的栈顶。__restore既可以用来启动新的应用（在系统启动或者一个应用结束需要启动另一个程序时），也可以用来从trap_handler运行后恢复context
-    b. 特殊处理了sstatus,sepc和sscratch。sstatus保存了Trap发生前cpu所处于的特权级；sepc保存了用户态从trap恢复后继续运行的指令地址，因此很重要。sscratch保存了进入内核栈的栈顶地址，对于下一次触发trap很重要。
-    c. x2为sp，因为在__alltrap触发之前就已经被保存在了sscratch中，因此无需保存。x4为tp，常用于多核情况，在当前环境下也不需要保存
-    d. 该指令交换了sscratch和sp的值，即在进入用户态前把sp设置为用户态栈顶，并将sscratch 设置为内核态栈顶。
-    e. sret指令。其用于从S态返回到U态
-    f. 发生之后，sp为内核栈栈顶，sscratch为用户栈栈顶。
-    g. user_lib中调用ecall方法之后即trap进内核
+2.  
+    1.  a0代表了内核栈的栈顶。__restore既可以用来启动新的应用（在系统启动或者一个应用结束需要启动另一个程序时），也可以用来从trap_handler运行后恢复context
+    2. 特殊处理了sstatus,sepc和sscratch。sstatus保存了Trap发生前cpu所处于的特权级；sepc保存了用户态从trap恢复后继续运行的指令地址，因此很重要。sscratch保存了进入内核栈的栈顶地址，对于下一次触发trap很重要。
+    3. x2为sp，因为在__alltrap触发之前就已经被保存在了sscratch中，因此无需保存。x4为tp，常用于多核情况，在当前环境下也不需要保存
+    4. 该指令交换了sscratch和sp的值，即在进入用户态前把sp设置为用户态栈顶，并将sscratch 设置为内核态栈顶。
+    5. sret指令。其用于从S态返回到U态
+    6. 发生之后，sp为内核栈栈顶，sscratch为用户栈栈顶。
+    7. user_lib中调用ecall方法之后即trap进内核
 
 # 荣誉准则
 1. 在完成本次实验的过程（含此前学习的过程）中，我曾分别与 以下各位 就（与本次实验相关的）以下方面做过交流，还在代码中对应的位置以注释形式记录了具体的交流对象及内容：
@@ -24,7 +25,7 @@
 
 2. 此外，我也参考了 以下资料 ，还在代码中对应的位置以注释形式记录了具体的参考来源及内容：
 
-> ![项目文档](https://learningos.cn/rCore-Tutorial-Book-v3/chapter1/3first-instruction-in-kernel1.html) 
+> [项目文档](https://learningos.cn/rCore-Tutorial-Book-v3/chapter1/3first-instruction-in-kernel1.html) 
 
 3. 我独立完成了本次实验除以上方面之外的所有工作，包括代码与文档。 我清楚地知道，从以上方面获得的信息在一定程度上降低了实验难度，可能会影响起评分。
 
